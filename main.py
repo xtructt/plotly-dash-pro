@@ -53,6 +53,7 @@ def find_indexes_columns (table_df):
       index_cols.append(columns_name)
   return index_cols
 def load_df (df_name):
+    returned_df = pd.DataFrame()
     if df_name == "US_Confirmed":
         returned_df = pd.melt(confirmed_US,id_vars=find_indexes_columns(confirmed_US), var_name = "Date", value_name="Confirmed_cases")
     elif df_name =="Global_Confirmed":
@@ -92,9 +93,9 @@ def data_scale_set(data_scale):
     df_table = pd.DataFrame()
     if data_scale == "US":
         df_table = load_df("US_Confirmed")
-    elif data_scale == "GLobal":
-        df_table = load_df("GLobal_Confirmed")
-    dash_table.DataTable(
+    elif data_scale == "Global":
+        df_table = load_df("Global_Confirmed")
+    return dash_table.DataTable(
         id="data_table",
         columns = [{"name":i, "id":i} for i in df_table.columns],
         data = df_table.head().to_dict("record")
