@@ -69,11 +69,10 @@ def load_df (df_name):
 #fig = px.bar(confirmed_US_melted, x="Date", y="Confirmed_cases", color="Province_State")
 
 app.layout = html.Div(children=[
-    html.H1(children='Hello Dash'),
-
-    html.Div(children='''
-        Dash: A web application framework for Python.
+    html.H1(children='''
+        Coronavirus Disease (COVID-19) Dashboard
     '''),
+    html.Div(id="Confirmed_cases_updated"),
     dcc.Dropdown(
         id = 'data_scale',
         options = [
@@ -82,7 +81,12 @@ app.layout = html.Div(children=[
         ],
         value = "US"
     ),
-    html.Div(id="Selected_scale")
+    html.Div(id="Selected_scale"),
+    dcc.Interval(
+            id='interval-component',
+            interval=1*1000, # in milliseconds
+            n_intervals=0
+        )
 ])
 
 @app.callback(
@@ -100,6 +104,16 @@ def data_scale_set(data_scale):
         columns = [{"name":i, "id":i} for i in df_table.columns],
         data = df_table.head().to_dict("record")
     )
+
+@app.callback(
+    dash.dependencies.Output("Confirmed_cases_updated", "children"),
+    [dash.dependencies.Input("interval-component","n_intervals")]
+)
+def global_confirmed_cases(n):
+    df = load_df("Global_Confirmed")
+    max_date = max(df["Date"])
+    Total_cases = df[df["Date"]== max_date].Confirmed_cases.sum()
+    return Total_cases
 
 if __name__ == '__main__':
     app.run_server(debug=True)
