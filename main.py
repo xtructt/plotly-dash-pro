@@ -113,7 +113,7 @@ def global_confirmed_cases(n):
     df = load_df("Global_Confirmed")
     max_date = max(df["Date"])
     Total_cases = df[df["Date"]== max_date].Confirmed_cases.sum()
-    return Total_cases
+    return "Total confirmed cases {}".format(Total_cases)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
