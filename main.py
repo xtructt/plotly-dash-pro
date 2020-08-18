@@ -85,8 +85,8 @@ app.layout = html.Div(children=[
             dcc.Tab(label='Accumulative', value='Acc'),
             dcc.Tab(label='Increase', value='Incr'),
         ]),
-        html.Div(id="Test"),
-        dcc.Graph(id="Total_confirmed_global_chart")
+        dcc.Graph(id="Total_confirmed_global_chart"),
+        dcc.Graph(id="Total_death_global_chart")
     ]),
     dcc.Dropdown(
         id = 'data_scale',
@@ -166,13 +166,28 @@ def global_confirmed_chart(type):
     return fig
 
 
-
 @app.callback(
-    dash.dependencies.Output("Test", "children"),
+    dash.dependencies.Output("Total_death_global_chart", "figure"),
     [dash.dependencies.Input("global_confirmed_accum_incre","value")]
 )
 def global_confirmed_chart(type):
-    return "jjlkjlkj {}".format(type)
+    yaxis = ''
+    df = load_df("Death_Global")
+    df = date_agg_sum(["Date"],df)
+    prev_day_case = []
+    for i in df.index:
+        if i == 0:
+            prev_day_case.append(df.iloc[i].number_of_deaths)
+        else:
+             prev_day_case.append(df.iloc[i-1].number_of_deaths)
+    df['prev_day_death'] = prev_day_case
+    df['death_increase'] =df['number_of_deaths'] - df['prev_day_death']
+    if type == "Acc":
+        yaxis="number_of_deaths"
+    elif type == "Incr":
+        yaxis="death_increase"
+    fig = px.bar(df, x="Date", y=yaxis)
+    return fig
 
 if __name__ == '__main__':
     app.run_server(debug=True)
