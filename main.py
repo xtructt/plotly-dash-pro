@@ -25,13 +25,14 @@ time_series_covid19_confirmed_US = 'https://raw.githubusercontent.com/CSSEGISand
 time_series_covid19_deaths_US = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv'
 time_series_covid19_deaths_global = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv'
 time_series_covid19_recovered_global = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv'
+countries_mapping = "https://raw.githubusercontent.com/lukes/ISO-3166-Countries-with-Regional-Codes/master/all/all.csv"
 #Create DF from csv files
 confirmed_US = pd.read_csv(time_series_covid19_confirmed_US)
 confirmed_global = pd.read_csv(time_series_covid19_confirmed_global)
 deaths_US = pd.read_csv(time_series_covid19_deaths_US)
 deaths_global = pd.read_csv(time_series_covid19_deaths_global)
 recovered_global = pd.read_csv(time_series_covid19_recovered_global)
-
+countries_mapping = pd.read_csv(countries_mapping)[["name", "region"]]
 def is_date(string, fuzzy=False):
     """
     Return whether the string can be interpreted as a date.
@@ -86,7 +87,8 @@ app.layout = html.Div(children=[
             dcc.Tab(label='Increase', value='Incr'),
         ]),
         dcc.Graph(id="Total_confirmed_global_chart"),
-        dcc.Graph(id="Total_death_global_chart")
+        dcc.Graph(id="Total_death_global_chart"),
+        dcc.Graph(id="Total_confirmed_global_chart_by_continent")
     ]),
     dcc.Dropdown(
         id = 'data_scale',
@@ -170,7 +172,7 @@ def global_confirmed_chart(type):
     dash.dependencies.Output("Total_death_global_chart", "figure"),
     [dash.dependencies.Input("global_confirmed_accum_incre","value")]
 )
-def global_confirmed_chart(type):
+def global_death_chart(type):
     yaxis = ''
     df = load_df("Death_Global")
     df = date_agg_sum(["Date"],df)
@@ -188,6 +190,33 @@ def global_confirmed_chart(type):
         yaxis="death_increase"
     fig = px.bar(df, x="Date", y=yaxis)
     return fig
-
+@app.callback(
+    dash.dependencies.Output("Total_confirmed_global_chart_by_continent", "figure"),
+    [dash.dependencies.Input("global_confirmed_accum_incre","value")]
+)
+def global_confirmed_chart_by_continent(type):
+    yaxis = ''
+    df = load_df("Global_Confirmed")
+    df = date_agg_sum(["Date"],df)
+    prev_day_case = []
+    for i in df.index:
+        if i == 0:
+            prev_day_case.append(df.iloc[i].Confirmed_cases)
+        else:
+             prev_day_case.append(df.iloc[i-1].Confirmed_cases)
+    df['prev_day_case'] = prev_day_case
+    df['case_increase'] =df['Confirmed_cases'] - df['prev_day_case']
+    columns = df.columns.to_list()
+    for index, i in enumerate(columns):
+        columns[index] = i.replace("/", "_")
+    df.columns = columns
+    df = pd.merge(df, countries_mapping, how='left', left_on="Country_Region", right_on='name')
+    df = df.drop(columns="name")
+    if type == "Acc":
+        yaxis="Confirmed_cases"
+    elif type == "Incr":
+        yaxis="case_increase"
+    fig = px.bar(df, x="Date", y=yaxis,color='region')
+    return fig
 if __name__ == '__main__':
     app.run_server(debug=True)
