@@ -58,21 +58,36 @@ def load_df (df_name):
         returned_df = pd.melt(confirmed_US,id_vars=find_indexes_columns(confirmed_US), var_name = "Date", value_name="Confirmed_cases")
     elif df_name =="Global_Confirmed":
         returned_df = pd.melt(confirmed_global,id_vars=find_indexes_columns(confirmed_global), var_name = "Date", value_name="Confirmed_cases")
+    elif df_name == "Death_US":
+        returned_df = pd.melt(deaths_US,id_vars=find_indexes_columns(deaths_US), var_name="Date", value_name="number_of_deaths")
+    elif df_name == "Death_Global":
+        returned_df = pd.melt(deaths_global,id_vars=find_indexes_columns(deaths_global), var_name="Date", value_name="number_of_deaths")
+    elif df_name == "Recover_Global":
+        returned_df = pd.melt(recovered_global, id_vars=find_indexes_columns(recovered_global), var_name="Date", value_name="number_of_deaths")
     return returned_df
-    #deaths_US_melted = pd.melt(deaths_US,id_vars=find_indexes_columns(deaths_US), var_name="Date", value_name="number_of_deaths")
-    #deaths_global_melted = pd.melt(deaths_global,id_vars=find_indexes_columns(deaths_global), var_name="Date", value_name="number_of_deaths")
-    #recovered_global = pd.melt(recovered_global, id_vars=find_indexes_columns(recovered_global), var_name="Date", value_name="number_of_deaths")
 
-
+def date_agg_sum (group_by_col, df):
+    df["Date"] = pd.to_datetime(df['Date'])
+    returned_df = df.groupby(by=group_by_col,as_index=False).sum()
+    return returned_df
 
 
 #fig = px.bar(confirmed_US_melted, x="Date", y="Confirmed_cases", color="Province_State")
 
 app.layout = html.Div(children=[
     html.H1(children='''
-        Coronavirus Disease (COVID-19) Dashboard
+        PROJ
     '''),
-    html.Div(id="Confirmed_cases_updated"),
+    html.Div(children=[
+        html.Div(id="Confirmed_cases_updated"),
+        html.Div(id="Total_death_global"),
+        dcc.Tabs(id='global_confirmed_accum_incre', value='Acc', children=[
+            dcc.Tab(label='Accumulative', value='Acc'),
+            dcc.Tab(label='Increase', value='Incr'),
+        ]),
+        html.Div(id="Test"),
+        dcc.Graph(id="Total_confirmed_global_chart")
+    ]),
     dcc.Dropdown(
         id = 'data_scale',
         options = [
@@ -84,7 +99,7 @@ app.layout = html.Div(children=[
     html.Div(id="Selected_scale"),
     dcc.Interval(
             id='interval-component',
-            interval=1*1000, # in milliseconds
+            interval=300000, # in milliseconds
             n_intervals=0
         )
 ])
@@ -111,9 +126,53 @@ def data_scale_set(data_scale):
 )
 def global_confirmed_cases(n):
     df = load_df("Global_Confirmed")
+    df["Date"] = pd.to_datetime(df["Date"])
     max_date = max(df["Date"])
     Total_cases = df[df["Date"]== max_date].Confirmed_cases.sum()
     return "Total confirmed cases {}".format(Total_cases)
+
+@app.callback(
+    dash.dependencies.Output("Total_death_global", "children"),
+    [dash.dependencies.Input("interval-component","n_intervals")]
+)
+def global_total_death(n):
+    df = load_df("Death_Global")
+    df["Date"] = pd.to_datetime(df["Date"])
+    max_date = max(df["Date"])
+    number_of_deaths = df[df["Date"]== max_date].number_of_deaths.sum()
+    return "Total death {}".format(number_of_deaths)
+
+@app.callback(
+    dash.dependencies.Output("Total_confirmed_global_chart", "figure"),
+    [dash.dependencies.Input("global_confirmed_accum_incre","value")]
+)
+def global_confirmed_chart(type):
+    yaxis = ''
+    df = load_df("Global_Confirmed")
+    df = date_agg_sum(["Date"],df)
+    prev_day_case = []
+    for i in df.index:
+        if i == 0:
+            prev_day_case.append(df.iloc[i].Confirmed_cases)
+        else:
+             prev_day_case.append(df.iloc[i-1].Confirmed_cases)
+    df['prev_day_case'] = prev_day_case
+    df['case_increase'] =df['Confirmed_cases'] - df['prev_day_case']
+    if type == "Acc":
+        yaxis="Confirmed_cases"
+    elif type == "Incr":
+        yaxis="case_increase"
+    fig = px.bar(df, x="Date", y="case_increase")
+    return fig
+
+
+
+@app.callback(
+    dash.dependencies.Output("Test", "children"),
+    [dash.dependencies.Input("global_confirmed_accum_incre","value")]
+)
+def global_confirmed_chart(type):
+    return "jjlkjlkj {}".format(type)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
