@@ -162,7 +162,7 @@ def global_confirmed_chart(type):
         yaxis="Confirmed_cases"
     elif type == "Incr":
         yaxis="case_increase"
-    fig = px.bar(df, x="Date", y="case_increase")
+    fig = px.bar(df, x="Date", y=yaxis)
     return fig
 
 
