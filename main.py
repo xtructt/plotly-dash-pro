@@ -197,13 +197,13 @@ def global_death_chart(type):
 def global_confirmed_chart_by_continent(type):
     yaxis = ''
     df = load_df("Global_Confirmed")
-    df = date_agg_sum(["Date","region"],df)
     columns = df.columns.to_list()
     for index, i in enumerate(columns):
         columns[index] = i.replace("/", "_")
     df.columns = columns
     df = pd.merge(df, countries_mapping, how='left', left_on="Country_Region", right_on='name')
     df = df.drop(columns="name")
+    df = date_agg_sum(["Date","region"],df)
     prev_day_case = []
     continent = list(df.region.unique())
     for i in df.index:
