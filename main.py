@@ -221,5 +221,19 @@ def global_confirmed_chart_by_continent(type):
         yaxis="case_increase"
     fig = px.bar(df, x="Date", y=yaxis,color='region')
     return fig
+
+def confirmed_and_death_case():
+    df_confirmed = load_df('Global_Confirmed')
+    df_deaths = load_df('Death_Global')
+    df_confirmed = date_agg_sum(['Date'],df_confirmed)
+    df_deaths = date_agg_sum(['Date'],df_deaths)
+    df_confirmed['type'] = 'Confirmed'
+    df_deaths['type'] = 'Deaths'
+    df_confirmed = df_confirmed[['Date','Confirmed_cases', 'type']]
+    df_deaths = df_deaths[['Date','number_of_deaths', 'type']]
+    df_confirmed.columns = ['Date','value', 'type']
+    df_deaths.columns = ['Date','value', 'type']
+    combine_df = pd.concat([df_confirmed,df_deaths])
+
 if __name__ == '__main__':
     app.run_server(debug=True)
