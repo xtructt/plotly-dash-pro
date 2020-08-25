@@ -69,7 +69,7 @@ def load_df (df_name):
 
 def date_agg_sum (group_by_col, df):
     df["Date"] = pd.to_datetime(df['Date'])
-    returned_df = df.groupby(by=group_by_col,as_index=False).sum()
+    returned_df = df.groupby(by=group_by_col,as_index=False,sort=True).sum()
     return returned_df
 
 
@@ -197,21 +197,23 @@ def global_death_chart(type):
 def global_confirmed_chart_by_continent(type):
     yaxis = ''
     df = load_df("Global_Confirmed")
-    df = date_agg_sum(["Date"],df)
-    prev_day_case = []
-    for i in df.index:
-        if i == 0:
-            prev_day_case.append(df.iloc[i].Confirmed_cases)
-        else:
-             prev_day_case.append(df.iloc[i-1].Confirmed_cases)
-    df['prev_day_case'] = prev_day_case
-    df['case_increase'] =df['Confirmed_cases'] - df['prev_day_case']
+    df = date_agg_sum(["Date","region"],df)
     columns = df.columns.to_list()
     for index, i in enumerate(columns):
         columns[index] = i.replace("/", "_")
     df.columns = columns
     df = pd.merge(df, countries_mapping, how='left', left_on="Country_Region", right_on='name')
     df = df.drop(columns="name")
+    prev_day_case = []
+    continent = list(df.region.unique())
+    for i in df.index:
+        if i < len(continent):
+            prev_day_case.append(0)
+        else:
+             prev_day_case.append(df.iloc[i-len(continent)].Confirmed_cases)
+    df['prev_day_case'] = prev_day_case
+    df['case_increase'] =df['Confirmed_cases'] - df['prev_day_case']
+
     if type == "Acc":
         yaxis="Confirmed_cases"
     elif type == "Incr":
