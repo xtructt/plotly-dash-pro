@@ -53,6 +53,7 @@ def find_indexes_columns (table_df):
     if not is_date(columns_name):
       index_cols.append(columns_name)
   return index_cols
+
 def load_df (df_name):
     returned_df = pd.DataFrame()
     if df_name == "US_Confirmed":
